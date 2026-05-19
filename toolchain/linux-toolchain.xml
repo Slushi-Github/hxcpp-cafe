@@ -86,7 +86,7 @@
          <flag value="-DHXCPP_BIG_ENDIAN"/>
          <flag value="-DHXCPP_PTHREADS"/>
          <!-- <flag value="-DHXCPP_NO_DEBUGGER"/> -->
-         <flag value="-DHXCPP_SINGLE_THREADED_APP"/>
+         <!-- <flag value="-DHXCPP_SINGLE_THREADED_APP"/> -->
       </section>
       
       <flag value="-fpic" unless="cafe" />
