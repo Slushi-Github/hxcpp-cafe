@@ -98,6 +98,100 @@
 
 #include <pthread.h>
 
+#if defined(HX_CAFE) || defined(__WIIU__)
+#include <vector>
+
+namespace hx
+{
+
+template<typename DATA,bool FAST=false>
+struct TLSData
+{
+   TLSData() {}
+
+   DATA *Get()
+   {
+      return get();
+   }
+   void Set(DATA *inData)
+   {
+      set(inData);
+   }
+   inline DATA *operator=(DATA *inData)
+   {
+      set(inData);
+      return inData;
+   }
+   inline operator DATA *() { return get(); }
+
+private:
+   struct Entry
+   {
+      pthread_t thread;
+      DATA *value;
+   };
+
+   static std::vector<Entry> &table()
+   {
+      static std::vector<Entry> sTable;
+      return sTable;
+   }
+
+   static pthread_mutex_t &lock()
+   {
+      static pthread_mutex_t sLock = PTHREAD_MUTEX_INITIALIZER;
+      return sLock;
+   }
+
+   static DATA *get()
+   {
+      pthread_mutex_lock(&lock());
+      pthread_t self = pthread_self();
+      for (size_t i = 0; i < table().size(); ++i)
+      {
+         if (pthread_equal(table()[i].thread, self))
+         {
+            DATA *result = table()[i].value;
+            pthread_mutex_unlock(&lock());
+            return result;
+         }
+      }
+      pthread_mutex_unlock(&lock());
+      return 0;
+   }
+
+   static void set(DATA *inData)
+   {
+      pthread_mutex_lock(&lock());
+      pthread_t self = pthread_self();
+      std::vector<Entry> &t = table();
+      for (size_t i = 0; i < t.size(); ++i)
+      {
+         if (pthread_equal(t[i].thread, self))
+         {
+            if (inData)
+               t[i].value = inData;
+            else
+               t.erase(t.begin() + i);
+            pthread_mutex_unlock(&lock());
+            return;
+         }
+      }
+      if (inData)
+      {
+         Entry e;
+         e.thread = self;
+         e.value = inData;
+         t.push_back(e);
+      }
+      pthread_mutex_unlock(&lock());
+   }
+};
+
+} // end namespace hx
+
+#else
+
 namespace hx
 {
 
@@ -128,6 +222,7 @@ struct TLSData
 
 } // end namespace hx
 
+#endif
 
 #endif
 

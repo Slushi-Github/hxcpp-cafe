@@ -80,7 +80,7 @@
          <flag value='-fexceptions' />
          <flag value='-fpermissive' />
          <flag value='-static' />
-         <flag value='-lpthread' />
+         <flag value='-pthread' />
          <flag value="-fno-threadsafe-statics"/>
          <flag value="-I${DEVKITPRO}/wut/include"/>
          <flag value="-DHXCPP_BIG_ENDIAN"/>
@@ -112,7 +112,7 @@
    <linker id="dll" exe="g++" if="linux">
       <exe name="${CXX}" if="CXX" />
       <fromfile value="" if="GCC_OLD" />
-      <flag value="-shared"/>
+      <flag value="-shared" unless="cafe" />
       <flag value="-fpic" unless="cafe"/>
       <flag value="-fPIC" unless="cafe"/>
       <flag value="-m32" unless="noM32"/>
@@ -129,7 +129,7 @@
          <lib name="-L${DEVKITPRO}/wut/lib"/>
       </section>
 
-      <ext value=".dso"/>
+      <ext value=".dso" unless="cafe" />
       <outflag value="-o "/>
    </linker>
 
@@ -147,10 +147,10 @@
       <exe name="${CXX}" if="CXX" />
       <fromfile value="" if="GCC_OLD" />
       <flag value="-debug" if="debug"/>
-      <flag value="-rdynamic"/>
+      <flag value="-rdynamic" unless="cafe" />
       <flag value="-m32" unless="noM32"/>
       <flag value="-m64" if="HXCPP_M64" unless="noM64 || cafe" />
-      <lib name="-ldl"/>
+      <lib name="-ldl" unless="cafe" />
       <ext value=""/>
       <outflag value="-o "/>
    </linker>

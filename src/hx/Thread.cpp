@@ -17,8 +17,6 @@ static int g_nextThreadNumber = 1;
 // HXCPP_THREAD_INFO_SINGLETON - use one structure for all threads. Not ideal.
 
 #if defined(HX_CAFE) || defined(__WIIU__)
-// RPX/WUT no soporta PT_TLS, thread_local genera R_PPC_TPREL que elf2rpl rechaza.
-// Usar pthread keys en su lugar.
 #define HXCPP_THREAD_INFO_PTHREAD
 #elif __cplusplus > 199711L && !defined(__BORLANDC__)
 #define HXCPP_THREAD_INFO_LOCAL
@@ -346,23 +344,41 @@ static thread_local ThreadInfoHolder threadHolder;
 static hx::Object **sMainThreadInfoRoot = 0;
 #endif
 
+
 static hxThreadInfo *GetCurrentInfo(bool createNew = true)
 {
+#ifdef HXCPP_THREAD_INFO_PTHREAD
+	// On PTHREAD platforms prefer any already-set tlsCurrentThread
+	// but also consult pthread specific storage and keep both in sync.
+	pthread_once(&key_once, make_key);
+	hxThreadInfo *info = tlsCurrentThread;
+	hxThreadInfo **pp = (hxThreadInfo **)pthread_getspecific(externThreadInfoKey);
+	if (pp && *pp)
+	{
+		if (!info)
+		{
+			info = *pp;
+			tlsCurrentThread = info;
+		}
+		else if (info != *pp)
+		{
+			// If they differ, prefer the pthread-specific one and sync tlsCurrentThread
+			info = *pp;
+			tlsCurrentThread = info;
+		}
+	}
+#else
 	hxThreadInfo *info = tlsCurrentThread;
 	if (!info)
-   {
-      #ifdef HXCPP_THREAD_INFO_PTHREAD
-      pthread_once(&key_once, make_key);
-      hxThreadInfo **pp = (hxThreadInfo **)pthread_getspecific(externThreadInfoKey);
-      if (pp)
-         info = *pp;
-      #elif defined(HXCPP_THREAD_INFO_LOCAL)
-      info = threadHolder.get();
-      #else
-      if (sMainThreadInfoRoot)
-      info = (hxThreadInfo *)*sMainThreadInfoRoot;
-      #endif
-   }
+	{
+		#ifdef HXCPP_THREAD_INFO_LOCAL
+		info = threadHolder.get();
+		#else
+		if (sMainThreadInfoRoot)
+			info = (hxThreadInfo *)*sMainThreadInfoRoot;
+		#endif
+	}
+#endif
 
 	if (!info && createNew)
 	{
@@ -373,7 +389,9 @@ static hxThreadInfo *GetCurrentInfo(bool createNew = true)
       *threadRoot = info; 
 		hx::GCAddRoot(threadRoot);
       #ifdef HXCPP_THREAD_INFO_PTHREAD
-      pthread_setspecific(externThreadInfoKey, threadRoot);
+		pthread_setspecific(externThreadInfoKey, threadRoot);
+		// Keep tlsCurrentThread in sync for code that reads it directly
+		tlsCurrentThread = info;
       #elif defined(HXCPP_THREAD_INFO_LOCAL)
       threadHolder.set(threadRoot);
       #else
