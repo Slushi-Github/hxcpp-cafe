@@ -80,11 +80,12 @@
          <flag value='-fexceptions' />
          <flag value='-fpermissive' />
          <flag value='-static' />
+         <flag value='-lpthread' />
+         <flag value="-fno-threadsafe-statics"/>
          <flag value="-I${DEVKITPRO}/wut/include"/>
          <flag value="-DHXCPP_BIG_ENDIAN"/>
-         <flag value="-DHXCPP_SINGLE_THREADED"/>
-         <flag value="-DHXCPP_NO_THREADS"/>
-         <flag value="-DHXCPP_NO_DEBUGGER"/>
+         <flag value="-DHXCPP_PTHREADS"/>
+         <!-- <flag value="-DHXCPP_NO_DEBUGGER"/> -->
          <flag value="-DHXCPP_SINGLE_THREADED_APP"/>
       </section>
       
@@ -122,6 +123,7 @@
       <lib name="-ldl"/>
 
       <section if="cafe">
+         <lib name="-lpthread" />
          <lib name="-lcafe"/>
          <flag value="-specs=wut.specs"/>
          <lib name="-L${DEVKITPRO}/wut/lib"/>

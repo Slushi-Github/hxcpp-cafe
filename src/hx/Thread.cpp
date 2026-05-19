@@ -17,6 +17,8 @@ static int g_nextThreadNumber = 1;
 // HXCPP_THREAD_INFO_SINGLETON - use one structure for all threads. Not ideal.
 
 #if defined(HX_CAFE) || defined(__WIIU__)
+// RPX/WUT no soporta PT_TLS, thread_local genera R_PPC_TPREL que elf2rpl rechaza.
+// Usar pthread keys en su lugar.
 #define HXCPP_THREAD_INFO_SINGLETON
 #elif __cplusplus > 199711L && !defined(__BORLANDC__)
 #define HXCPP_THREAD_INFO_LOCAL

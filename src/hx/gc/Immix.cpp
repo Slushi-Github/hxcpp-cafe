@@ -272,6 +272,9 @@ volatile int sgAllocsSinceLastSpam = 0;
 
 #ifdef ANDROID
 #define GCLOG(...) __android_log_print(ANDROID_LOG_INFO, "gclog", __VA_ARGS__)
+#elif defined(HX_CAFE)
+#include <coreinit/debug.h>
+   #define GCLOG(...) OSReportInfo("gclog: " __VA_ARGS__)
 #else
 #define GCLOG printf
 #endif
@@ -558,6 +561,9 @@ void CriticalGCError(const char *inMessage)
    __android_log_print(ANDROID_LOG_ERROR, "HXCPP", "Critical Error: %s", inMessage);
    #elif defined(HX_WINRT)
       WINRT_LOG("HXCPP Critical Error: %s\n", inMessage);
+   #elif defined(HX_CAFE)
+      // #include <coreinit/debug.h>
+      OSReportInfo("HXCPP Critical Error: %s\n", inMessage);
    #else
    printf("Critical Error: %s\n", inMessage);
    #endif
@@ -6985,6 +6991,7 @@ int __hxcpp_gc_trace(hx::Class inClass,bool inPrint)
        gCollectTraceDoPrint = inPrint;
        hx::InternalCollect(false,false);
        gCollectTrace = 0;
+       GCLOG("GC trace count : %d\n", gCollectTraceCount);
        return gCollectTraceCount;
     #endif
 }
