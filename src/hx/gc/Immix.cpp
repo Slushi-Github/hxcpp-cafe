@@ -6522,9 +6522,10 @@ namespace hx
 
    void GCPrepareMultiThreaded()
    {
-#ifdef HXCPP_SINGLE_THREADED_APP
-      CriticalGCError("GCPrepareMultiThreaded called with HXCPP_SINGLE_THREADED_APP");
-#endif
+      // Y QUE ME IMPORTA???????/
+// #ifdef HXCPP_SINGLE_THREADED_APP
+//       CriticalGCError("GCPrepareMultiThreaded called with HXCPP_SINGLE_THREADED_APP");
+// #endif
    }
 
    void SetTopOfStack(int *inTop, bool inForce)
