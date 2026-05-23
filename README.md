@@ -10,5 +10,6 @@ I'd really appreciate any help with this.
 
 The implementation of pthreads in DevKitPPC or specifically for the Wii U doesn't seem to be the best or sufficient enough to at least support TLS (**T**hread-**L**ocal **S**torage), so the Wii U couldn't use them correctly and caused hxcpp to crash. I've managed to implement a solution that allows a program compiled to use pthreads and TLS to run, but the program is still incredibly unstable, whether using a single thread or more.
 
-This is how I feel after giving up on this project:
-VIDEO
+This is how I feel after giving up on this project (VIDEO WITH LOUD SOUND, maybe?):
+
+https://github.com/user-attachments/assets/79171259-06c3-43e1-9e41-523a89a67cfe
