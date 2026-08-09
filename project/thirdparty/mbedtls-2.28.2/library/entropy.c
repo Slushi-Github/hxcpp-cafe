@@ -81,12 +81,10 @@ void mbedtls_entropy_init( mbedtls_entropy_context *ctx )
                                 MBEDTLS_ENTROPY_MIN_PLATFORM,
                                 MBEDTLS_ENTROPY_SOURCE_STRONG );
 #endif
-#if !defined(__NX__)
 #if defined(MBEDTLS_TIMING_C)
     mbedtls_entropy_add_source( ctx, mbedtls_hardclock_poll, NULL,
                                 MBEDTLS_ENTROPY_MIN_HARDCLOCK,
                                 MBEDTLS_ENTROPY_SOURCE_WEAK );
-#endif
 #endif
 #if defined(MBEDTLS_HAVEGE_C)
     mbedtls_entropy_add_source( ctx, mbedtls_havege_poll, &ctx->havege_data,

@@ -9,7 +9,9 @@
 
 #ifdef __GNUC__
    // Mingw / gcc on windows
+   #ifndef _WIN32_WINNT
    #define _WIN32_WINNT 0x0501
+   #endif
    #include <winsock2.h>
    #include <ws2tcpip.h>
 #else
@@ -19,22 +21,14 @@
    #include <Ws2tcpip.h>
 #endif
 
-// #ifdef HX_NX
-// #include <sys/unistd.h>
-// #include <sys/select.h>
-// #include <sys/time.h>
-// #include <sys/types.h>
-// #define INADDR_NONE ((in_addr_t)0xffffffff)
-// #endif
-
 #define DYNAMIC_INET_FUNCS 1
-   typedef WINSOCK_API_LINKAGE INT(WSAAPI *inet_pton_func)(INT Family, PCSTR pszAddrString, PVOID pAddrBuf);
-   typedef WINSOCK_API_LINKAGE PCSTR(WSAAPI *inet_ntop_func)(INT Family, PVOID pAddr, PSTR pStringBuf, size_t StringBufSize);
+typedef INT (WSAAPI *inet_pton_func)( INT Family, PCSTR pszAddrString, PVOID pAddrBuf);
+typedef PCSTR (WSAAPI *inet_ntop_func)(INT  Family, PVOID pAddr, PSTR pStringBuf, size_t StringBufSize);
 
-#define FDSIZE(n) (sizeof(u_int) + (n) * sizeof(SOCKET))
-#define SHUT_WR SD_SEND
-#define SHUT_RD SD_RECEIVE
-#define SHUT_RDWR SD_BOTH
+#   define FDSIZE(n)   (sizeof(u_int) + (n) * sizeof(SOCKET))
+#   define SHUT_WR      SD_SEND
+#   define SHUT_RD      SD_RECEIVE
+#   define SHUT_RDWR   SD_BOTH
    static bool init_done = false;
    static WSADATA init_data;
 typedef int SocketLen;
@@ -47,13 +41,13 @@ typedef int SocketLen;
 #   include <arpa/inet.h>
 #   include <unistd.h>
 
-#ifdef HX_NX
-#define __BSD_VISIBLE 1
-#include <sys/unistd.h>
-#include <sys/select.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#define INADDR_NONE ((in_addr_t)0xffffffff)
+#ifdef HX_CAFE
+#   define __BSD_VISIBLE 1
+#   include <sys/unistd.h>
+#   include <sys/select.h>
+#   include <sys/time.h>
+#   include <sys/types.h>
+#define INADDR_NONE     ((in_addr_t)0xffffffff)
 #endif
 
 #   include <netdb.h>
@@ -68,7 +62,7 @@ typedef int SocketLen;
 typedef socklen_t SocketLen;
 #endif
 
-#if (defined(NEKO_WINDOWS) || defined(HX_NX) || defined(NEKO_MAC)) && !defined(MSG_NOSIGNAL)
+#if (defined(NEKO_WINDOWS) || defined(NEKO_MAC) || defined(HX_CAFE)) && !defined(MSG_NOSIGNAL)
 #   define MSG_NOSIGNAL 0
 #endif
 
@@ -85,7 +79,7 @@ struct SocketWrapper : public hx::Object
 
    SOCKET socket;
 
-   int __GetType() const { return socketType; }
+   int __GetType() const HXCPP_OVERRIDE { return socketType; }
 };
 
 
@@ -395,20 +389,18 @@ int _hx_std_host_resolve( String host )
    hx::EnterGCFreeZone();
    hx::strbuf buf;
    ip = inet_addr(host.utf8_str(&buf));
-   if (ip == ((in_addr_t)0xffffffff))
+   if( ip == INADDR_NONE )
    {
       struct hostent *h = 0;
       hx::strbuf hostBuf;
 
-#   if defined(NEKO_WINDOWS) || defined(NEKO_MAC) || defined(BLACKBERRY) || defined(EMSCRIPTEN) || defined(HX_NX)
+#if defined(NEKO_WINDOWS) || defined(NEKO_MAC) || defined(BLACKBERRY) || defined(EMSCRIPTEN) || defined(HX_CAFE)
       h = gethostbyname(host.utf8_str(&hostBuf));
 #   else
       struct hostent hbase;
       char buf[1024];
       int errcode;
-      // #if !defined(HX_NX)
       gethostbyname_r(host.utf8_str(&hostBuf),&hbase,buf,1024,&h,&errcode);
-      // #endif
 #   endif
       if( !h ) {
          hx::ExitGCFreeZone();
@@ -427,73 +419,73 @@ inet_pton_func dynamic_inet_pton = 0;
 
 Array<unsigned char> _hx_std_host_resolve_ipv6( String host, bool )
 {
-   #if defined(HX_NX)
-      return Array_obj<unsigned char>::__new();
-   #else
-      in6_addr ipv6;
+#if defined(HX_CAFE)
+   return Array_obj<unsigned char>::__new();
+#else
+   in6_addr ipv6;
 
-      hx::strbuf hostBuf;
-      const char *hostStr = host.utf8_str(&hostBuf);
-      #ifdef DYNAMIC_INET_FUNCS
-      if (!dynamic_inet_pton_tried)
+   hx::strbuf hostBuf;
+   const char *hostStr = host.utf8_str(&hostBuf);
+#ifdef DYNAMIC_INET_FUNCS
+   if (!dynamic_inet_pton_tried)
+   {
+      dynamic_inet_pton_tried = true;
+      HMODULE module = LoadLibraryA("WS2_32.dll");
+      if (module)
+         dynamic_inet_pton = (inet_pton_func)GetProcAddress(module,"inet_pton");
+   }
+   int ok = dynamic_inet_pton ? dynamic_inet_pton(AF_INET6, hostStr, (void *)&ipv6) : 0;
+#else
+   int ok = inet_pton(AF_INET6, hostStr, (void *)&ipv6);
+#endif
+
+   if (!ok)
+   {
+      addrinfo hints;
+
+      memset(&hints, 0, sizeof(struct addrinfo));
+      hints.ai_family = AF_INET6;  //  IPv6
+      hints.ai_socktype = 0;  // any - SOCK_STREAM or SOCK_DGRAM
+      hints.ai_flags = AI_PASSIVE;  // For wildcard IP address
+      hints.ai_protocol = 0;        // Any protocol
+      hints.ai_canonname = 0;
+      hints.ai_addr = 0;
+      hints.ai_next = 0;
+
+      addrinfo *result = 0;
+      hx::EnterGCFreeZone();
+      int err =  getaddrinfo( hostStr, 0, &hints, &result);
+      hx::ExitGCFreeZone();
+      if (err==0)
       {
-         dynamic_inet_pton_tried = true;
-         HMODULE module = LoadLibraryA("WS2_32.dll");
-         if (module)
-            dynamic_inet_pton = (inet_pton_func)GetProcAddress(module,"inet_pton");
-      }
-      int ok = dynamic_inet_pton ? dynamic_inet_pton(AF_INET6, hostStr, (void *)&ipv6) : 0;
-      #else
-      int ok = inet_pton(AF_INET6, hostStr, (void *)&ipv6);
-      #endif
-
-      if (!ok)
-      {
-         addrinfo hints;
-
-         memset(&hints, 0, sizeof(struct addrinfo));
-         hints.ai_family = AF_INET6;  //  IPv6
-         hints.ai_socktype = 0;  // any - SOCK_STREAM or SOCK_DGRAM
-         hints.ai_flags = AI_PASSIVE;  // For wildcard IP address
-         hints.ai_protocol = 0;        // Any protocol
-         hints.ai_canonname = 0;
-         hints.ai_addr = 0;
-         hints.ai_next = 0;
-
-         addrinfo *result = 0;
-         hx::EnterGCFreeZone();
-         int err =  getaddrinfo( hostStr, 0, &hints, &result);
-         hx::ExitGCFreeZone();
-         if (err==0)
+         for(addrinfo * rp = result; rp; rp = rp->ai_next)
          {
-            for(addrinfo * rp = result; rp; rp = rp->ai_next)
+            if (rp->ai_family==AF_INET6)
             {
-               if (rp->ai_family==AF_INET6)
-               {
-                  sockaddr_in6 *s6 = (sockaddr_in6 *)rp->ai_addr;
-                  ipv6 = s6->sin6_addr;
-                  ok = true;
-                  break;
-               }
-               else
-               {
-                  freeaddrinfo(result);
-                  hx::Throw( HX_CSTRING("Unkown ai_family") );
-               }
+               sockaddr_in6 *s6 = (sockaddr_in6 *)rp->ai_addr;
+               ipv6 = s6->sin6_addr;
+               ok = true;
+               break;
             }
-            freeaddrinfo(result);
+            else
+            {
+               freeaddrinfo(result);
+               hx::Throw( HX_CSTRING("Unkown ai_family") );
+            }
          }
-         else
-         {
-            hx::Throw( host + HX_CSTRING(":") + String(gai_strerror(err)) );
-         }
+         freeaddrinfo(result);
       }
+      else
+      {
+         hx::Throw( host + HX_CSTRING(":") + String(gai_strerror(err)) );
+      }
+   }
 
-      if (!ok)
-         return null();
+   if (!ok)
+      return null();
 
-      return Array_obj<unsigned char>::fromData( (unsigned char *)&ipv6, 16 );
-   #endif
+   return Array_obj<unsigned char>::fromData( (unsigned char *)&ipv6, 16 );
+#endif
 }
 
 
@@ -508,6 +500,7 @@ String _hx_std_host_to_string( int ip )
    *(int*)&i = ip;
    return String( inet_ntoa(i) );
 }
+
 
 #ifdef DYNAMIC_INET_FUNCS
 bool dynamic_inet_ntop_tried = false;
@@ -540,49 +533,46 @@ String _hx_std_host_to_string_ipv6( Array<unsigned char> ip )
 **/
 String _hx_std_host_reverse( int host )
 {
-   // #if defined(HX_NX)
+   struct hostent *h = 0;
+   unsigned int ip = host;
+   hx::EnterGCFreeZone();
+   #if defined(NEKO_WINDOWS) || defined(NEKO_MAC) || defined(ANDROID) || defined(BLACKBERRY) || defined(EMSCRIPTEN) || defined(HX_CAFE)
+   h = gethostbyaddr((char *)&ip,4,AF_INET);
+   #else
+   struct hostent htmp;
+   int errcode;
+   char buf[1024];
+   gethostbyaddr_r((char *)&ip,4,AF_INET,&htmp,buf,1024,&h,&errcode);
+   #endif
+   hx::ExitGCFreeZone();
+   if( !h )
       return String();
-   // #else
-      struct hostent *h = 0;
-      unsigned int ip = host;
-      hx::EnterGCFreeZone();
-      #if defined(NEKO_WINDOWS) || defined(NEKO_MAC) || defined(ANDROID) || defined(BLACKBERRY) || defined(EMSCRIPTEN) || defined(HX_NX)
-      h = gethostbyaddr((char *)&ip,4,AF_INET);
-      #else
-      struct hostent htmp;
-      int errcode;
-      char buf[1024];
-      gethostbyaddr_r((char *)&ip,4,AF_INET,&htmp,buf,1024,&h,&errcode);
-      #endif
-      hx::ExitGCFreeZone();
-      if( !h )
-         return String();
-      return String( h->h_name );
-   // #endif
+   return String( h->h_name );
 }
 
 String _hx_std_host_reverse_ipv6( Array<unsigned char> host )
 {
-   #if defined(HX_NX)
+#if defined(HX_CAFE)
+   return String();
+#else
+   if (!host.mPtr || host->length!=16)
       return String();
-   #else
-      if (!host.mPtr || host->length!=16)
-         return String();
 
-      struct hostent *h = 0;
-      hx::EnterGCFreeZone();
-      #if defined(NEKO_WINDOWS) || defined(NEKO_MAC) || defined(ANDROID) || defined(BLACKBERRY) || defined(EMSCRIPTEN)
-      #else
-      struct hostent htmp;
-      int errcode;
-      char buf[1024];
-      gethostbyaddr_r((char *)&host[0],16,AF_INET6,&htmp,buf,1024,&h,&errcode);
-      #endif
-      hx::ExitGCFreeZone();
-      if( !h )
-         return String();
-      return String( h->h_name );
-   #endif
+   struct hostent *h = 0;
+   hx::EnterGCFreeZone();
+#if defined(NEKO_WINDOWS) || defined(NEKO_MAC) || defined(ANDROID) || defined(BLACKBERRY) || defined(EMSCRIPTEN)
+   h = gethostbyaddr((char *)&host[0],16,AF_INET6);
+#else
+   struct hostent htmp;
+   int errcode;
+   char buf[1024];
+   gethostbyaddr_r((char *)&host[0],16,AF_INET6,&htmp,buf,1024,&h,&errcode);
+#endif
+   hx::ExitGCFreeZone();
+   if( !h )
+      return String();
+   return String( h->h_name );
+#endif
 }
 
 
@@ -592,19 +582,19 @@ String _hx_std_host_reverse_ipv6( Array<unsigned char> host )
 **/
 String _hx_std_host_local()
 {
-   #if defined(HX_NX)
-      return String();
-   #else
-      char buf[256];
-      hx::EnterGCFreeZone();
-      if( gethostname(buf,256) == SOCKET_ERROR )
-      {
-         hx::ExitGCFreeZone();
-         return String();
-      }
+#if defined(HX_CAFE)
+   return String();
+#else
+   char buf[256];
+   hx::EnterGCFreeZone();
+   if( gethostname(buf,256) == SOCKET_ERROR )
+   {
       hx::ExitGCFreeZone();
-      return String(buf);
-   #endif
+      return String();
+   }
+   hx::ExitGCFreeZone();
+   return String(buf);
+#endif
 }
 
 /**
@@ -638,27 +628,27 @@ void _hx_std_socket_connect( Dynamic o, int host, int port )
 **/
 void _hx_std_socket_connect_ipv6( Dynamic o, Array<unsigned char> host, int port )
 {
-   #if defined(HX_NX)
-      return;
-   #else
-      struct sockaddr_in6 addr;
-      memset(&addr,0,sizeof(addr));
-      addr.sin6_family = AF_INET6;
-      addr.sin6_port = htons(port);
-      memcpy(&addr.sin6_addr,&host[0],16);
+#if defined(HX_CAFE)
+   return;
+#else
+   struct sockaddr_in6 addr;
+   memset(&addr,0,sizeof(addr));
+   addr.sin6_family = AF_INET6;
+   addr.sin6_port = htons(port);
+   memcpy(&addr.sin6_addr,&host[0],16);
 
-      hx::EnterGCFreeZone();
-      if( connect(val_sock(o),(struct sockaddr*)&addr,sizeof(addr)) != 0 )
-      {
-         // This will throw a "Blocking" exception if the "error" was because
-         // it's a non-blocking socket with connection in progress, otherwise
-         // it will do nothing.
-         //
-         // - now it always throws
-         block_error();
-      }
-      hx::ExitGCFreeZone();
-   #endif
+   hx::EnterGCFreeZone();
+   if( connect(val_sock(o),(struct sockaddr*)&addr,sizeof(addr)) != 0 )
+   {
+      // This will throw a "Blocking" exception if the "error" was because
+      // it's a non-blocking socket with connection in progress, otherwise
+      // it will do nothing.
+      //
+      // - now it always throws
+      block_error();
+   }
+   hx::ExitGCFreeZone();
+#endif
 }
 
 /**
@@ -677,19 +667,11 @@ void _hx_std_socket_listen( Dynamic o, int n )
    hx::ExitGCFreeZone();
 }
 
-#if defined(HX_NX)
+#if defined(HX_CAFE)
 #ifndef FD_SETSIZE
 #define FD_SETSIZE 64
 #endif
 
-#if !defined(HX_NX)
-typedef struct
-{
-   unsigned int fds_bits[FD_SETSIZE / 32];
-} fd_set;
-#endif
-
-// Basic macros if needed
 #define FD_ZERO(set) memset((set), 0, sizeof(fd_set))
 #define FD_SET(fd, set) ((set)->fds_bits[(fd) / 32] |= (1 << ((fd) % 32)))
 #define FD_CLR(fd, set) ((set)->fds_bits[(fd) / 32] &= ~(1 << ((fd) % 32)))
@@ -762,7 +744,7 @@ static void make_array_result_inplace(Array<Dynamic> a, fd_set *tmp)
 static struct timeval *init_timeval( double f, struct timeval *t ) {
    if (f<0)
       return 0;
-   t->tv_usec = (f - (int)f ) * 1000000;
+   t->tv_usec = (int)(  (f - (int)f ) * 1000000 );
    t->tv_sec = (int)f;
    return t;
 }
@@ -773,40 +755,36 @@ static struct timeval *init_timeval( double f, struct timeval *t ) {
 **/
 Array<Dynamic> _hx_std_socket_select( Array<Dynamic> rs, Array<Dynamic> ws, Array<Dynamic> es, Dynamic timeout )
 {
-   // #if defined(HX_NX)
-      return null();
-   // #else
-      SOCKET n = 0;
-      fd_set rx, wx, ex;
-      fd_set *ra, *wa, *ea;
+   SOCKET n = 0;
+   fd_set rx, wx, ex;
+   fd_set *ra, *wa, *ea;
 
-      POSIX_LABEL(select_again);
-      ra = make_socket_array(rs,&rx,&n);
-      wa = make_socket_array(ws,&wx,&n);
-      ea = make_socket_array(es,&ex,&n);
-      if( ra == &INVALID || wa == &INVALID || ea == &INVALID )
-         hx::Throw( HX_CSTRING("No valid sockets") );
+   POSIX_LABEL(select_again);
+   ra = make_socket_array(rs,&rx,&n);
+   wa = make_socket_array(ws,&wx,&n);
+   ea = make_socket_array(es,&ex,&n);
+   if( ra == &INVALID || wa == &INVALID || ea == &INVALID )
+      hx::Throw( HX_CSTRING("No valid sockets") );
 
-      struct timeval tval;
-      struct timeval *tt = 0;
-      if( timeout.mPtr )
-         tt = init_timeval(timeout,&tval);
+   struct timeval tval;
+   struct timeval *tt = 0;
+   if( timeout.mPtr )
+      tt = init_timeval(timeout,&tval);
 
-      hx::EnterGCFreeZone();
-      if( select((int)(n+1),ra,wa,ea,tt) == SOCKET_ERROR )
-      {
-         hx::ExitGCFreeZone();
-         HANDLE_EINTR(select_again);
-         hx::Throw( HX_CSTRING("Select error ") + String((int)errno) );
-      }
+   hx::EnterGCFreeZone();
+   if( select((int)(n+1),ra,wa,ea,tt) == SOCKET_ERROR )
+   {
       hx::ExitGCFreeZone();
+      HANDLE_EINTR(select_again);
+      hx::Throw( HX_CSTRING("Select error ") + String((int)errno) );
+   }
+   hx::ExitGCFreeZone();
 
-      Array<Dynamic> r = Array_obj<Dynamic>::__new(3,3);
-      r[0] = make_array_result(rs,ra);
-      r[1] = make_array_result(ws,wa);
-      r[2] = make_array_result(es,ea);
-      return r;
-   // #endif
+   Array<Dynamic> r = Array_obj<Dynamic>::__new(3,3);
+   r[0] = make_array_result(rs,ra);
+   r[1] = make_array_result(ws,wa);
+   r[2] = make_array_result(es,ea);
+   return r;
 }
 
 /**
@@ -815,44 +793,40 @@ Array<Dynamic> _hx_std_socket_select( Array<Dynamic> rs, Array<Dynamic> ws, Arra
 **/
 void _hx_std_socket_fast_select( Array<Dynamic> rs, Array<Dynamic> ws, Array<Dynamic> es, Dynamic timeout )
 {
-   // #if defined(HX_NX)
-      return;
-   // #else
-      SOCKET n = 0;
-      fd_set rx, wx, ex;
-      fd_set *ra, *wa, *ea;
+   SOCKET n = 0;
+   fd_set rx, wx, ex;
+   fd_set *ra, *wa, *ea;
 
-      POSIX_LABEL(select_again);
-      ra = make_socket_array(rs,&rx,&n);
-      wa = make_socket_array(ws,&wx,&n);
-      ea = make_socket_array(es,&ex,&n);
+   POSIX_LABEL(select_again);
+   ra = make_socket_array(rs,&rx,&n);
+   wa = make_socket_array(ws,&wx,&n);
+   ea = make_socket_array(es,&ex,&n);
 
-      if( ra == &INVALID || wa == &INVALID || ea == &INVALID )
-         hx::Throw( HX_CSTRING("No valid sockets") );
+   if( ra == &INVALID || wa == &INVALID || ea == &INVALID )
+      hx::Throw( HX_CSTRING("No valid sockets") );
 
 
-      struct timeval tval;
-      struct timeval *tt = 0;
-      if( timeout.mPtr )
-         tt = init_timeval(timeout,&tval);
+   struct timeval tval;
+   struct timeval *tt = 0;
+   if( timeout.mPtr )
+      tt = init_timeval(timeout,&tval);
 
-      hx::EnterGCFreeZone();
-      if( select((int)(n+1),ra,wa,ea,tt) == SOCKET_ERROR )
-      {
-         hx::ExitGCFreeZone();
-         HANDLE_EINTR(select_again);
-   #ifdef NEKO_WINDOWS
-         hx::Throw( HX_CSTRING("Select error ") + String((int)WSAGetLastError()) );
-   #else
-         hx::Throw( HX_CSTRING("Select error ") + String((int)errno) );
-   #endif
-      }
-
+   hx::EnterGCFreeZone();
+   if( select((int)(n+1),ra,wa,ea,tt) == SOCKET_ERROR )
+   {
       hx::ExitGCFreeZone();
-      make_array_result_inplace(rs, ra);
-      make_array_result_inplace(ws, wa);
-      make_array_result_inplace(es, ea);
-   // #endif
+      HANDLE_EINTR(select_again);
+#ifdef NEKO_WINDOWS
+      hx::Throw( HX_CSTRING("Select error ") + String((int)WSAGetLastError()) );
+#else
+      hx::Throw( HX_CSTRING("Select error ") + String((int)errno) );
+#endif
+   }
+
+   hx::ExitGCFreeZone();
+   make_array_result_inplace(rs, ra);
+   make_array_result_inplace(ws, wa);
+   make_array_result_inplace(es, ea);
 }
 
 /**
@@ -889,30 +863,30 @@ void _hx_std_socket_bind( Dynamic o, int host, int port )
 **/
 void _hx_std_socket_bind_ipv6( Dynamic o, Array<unsigned char> host, int port )
 {
-   #if defined(HX_NX)
-      return;
-   #else
-      SOCKET sock = val_sock(o);
+#if defined(HX_CAFE)
+   return;
+#else
+   SOCKET sock = val_sock(o);
 
-      int opt = 1;
+   int opt = 1;
 
-      struct sockaddr_in6 addr;
-      memset(&addr,0,sizeof(addr));
-      addr.sin6_family = AF_INET6;
-      addr.sin6_port = htons(port);
-      memcpy(&addr.sin6_addr,&host[0], 16);
-   #ifndef NEKO_WINDOWS
-      setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,(char*)&opt,sizeof(opt));
-   #endif
+   struct sockaddr_in6 addr;
+   memset(&addr,0,sizeof(addr));
+   addr.sin6_family = AF_INET6;
+   addr.sin6_port = htons(port);
+   memcpy(&addr.sin6_addr,&host[0], 16);
+#ifndef NEKO_WINDOWS
+   setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,(char*)&opt,sizeof(opt));
+#endif
 
-      hx::EnterGCFreeZone();
-      if( bind(sock,(struct sockaddr*)&addr,sizeof(addr)) == SOCKET_ERROR )
-      {
-         hx::ExitGCFreeZone();
-         hx::Throw(HX_CSTRING("Bind failed"));
-      }
+   hx::EnterGCFreeZone();
+   if( bind(sock,(struct sockaddr*)&addr,sizeof(addr)) == SOCKET_ERROR )
+   {
       hx::ExitGCFreeZone();
-   #endif
+      hx::Throw(HX_CSTRING("Bind failed"));
+   }
+   hx::ExitGCFreeZone();
+#endif
 }
 
 
@@ -1189,19 +1163,19 @@ struct polldata : public hx::Object
       }
    }
 
-   void __Mark(hx::MarkContext *__inCtx) { HX_MARK_MEMBER(ridx); HX_MARK_MEMBER(widx); }
+   void __Mark(hx::MarkContext *__inCtx) HXCPP_OVERRIDE { HX_MARK_MEMBER(ridx); HX_MARK_MEMBER(widx); }
    #ifdef HXCPP_VISIT_ALLOCS
-   void __Visit(hx::VisitContext *__inCtx) { HX_VISIT_MEMBER(ridx); HX_VISIT_MEMBER(widx); }
+   void __Visit(hx::VisitContext *__inCtx) HXCPP_OVERRIDE { HX_VISIT_MEMBER(ridx); HX_VISIT_MEMBER(widx); }
    #endif
 
-   int __GetType() const { return pollType; }
+   int __GetType() const HXCPP_OVERRIDE { return pollType; }
 
    static void finalize(Dynamic obj)
    {
       ((polldata *)(obj.mPtr))->destroy();
    }
 
-   String toString() { return HX_CSTRING("polldata"); }
+   String toString() HXCPP_OVERRIDE { return HX_CSTRING("polldata"); }
 };
 
 polldata *val_poll(Dynamic o)

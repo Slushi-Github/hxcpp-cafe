@@ -61,7 +61,7 @@ class Builder
 
             switch(target)
             {
-               case "ios", "android", "blackberry", "tizen", "emscripten", "webos", "windows", "msvc", "linux", "mac", "mingw", "tvos"`, "nx":
+               case "ios", "android", "blackberry", "tizen", "emscripten", "webos", "windows", "msvc", "linux", "mac", "mingw", "tvos", "wiiu":
                   defaultTarget = false;
                   if (linkStatic)
                   {
@@ -115,8 +115,12 @@ class Builder
                target = target.substr(7);
             }
             var staticFlags = isStatic ? ["-Dstatic_link"] : [];
+#if (hxcpp_api_level>=500)
+            staticFlags.push("-DHXCPP_CPP11");
+#else
             if (target=="ios" || target=="tvos")
                staticFlags = ["-DHXCPP_CPP11"];
+#end
 
             switch(target)
             {
@@ -167,11 +171,8 @@ class Builder
                   validArchs.set("x86", ["-Diphonesim"].concat(staticFlags) );
                   validArchs.set("x86_64", ["-Diphonesim", "-DHXCPP_M64"].concat(staticFlags) );
 
-               // Custom for Nintendo Switch (NX)
-               case "nx":
-                  validArchs.set("arm64", ["-Dnx", "-DHXCPP_ARM64", "-DHXCPP_M64"].concat(staticFlags));
-
                case "android":
+
                   if( archs.length == 0 )
                      throw("You must specify the archs you want for android");
                
@@ -200,6 +201,8 @@ class Builder
                   // NOTE: removed as there's no 32bit support for the AppleTV simulator
                   //validArchs.set("x86", ["-Dappletvsim", "-DENABLE_BITCODE"].concat(staticFlags) );
                   validArchs.set("x86_64", ["-Dappletvsim", "-DHXCPP_M64", "-DENABLE_BITCODE"].concat(staticFlags) );
+               case "wiiu":
+                  validArchs.set("ppc", ["-Dwiiu", "-DEPPC"].concat(staticFlags));
 
             }
 

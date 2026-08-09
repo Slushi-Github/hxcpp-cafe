@@ -42,7 +42,7 @@
 
 #if !defined(MBEDTLS_NO_PLATFORM_ENTROPY)
 
-#if !defined(unix) && !defined(__unix__) && !defined(__NX__) && !defined(__unix) && \
+#if !defined(unix) && !defined(__unix__) && !defined(__unix) && !defined(__WIIU__) && \
     !defined(__APPLE__) && !defined(_WIN32) && !defined(__QNXNTO__) && \
     !defined(__HAIKU__) && !defined(__midipix__)
 #error "Platform entropy sources only work on Unix and Windows, see MBEDTLS_NO_PLATFORM_ENTROPY in config.h"

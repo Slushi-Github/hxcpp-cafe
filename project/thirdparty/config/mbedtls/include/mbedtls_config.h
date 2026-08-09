@@ -7,9 +7,6 @@
 
 #define MBEDTLS_THREADING_C
 
-#if defined(HX_NX)
-// #define MBEDTLS_NO_PLATFORM_ENTROPY
+#if defined(HX_CAFE)
 #define MBEDTLS_TIMING_C
-// #undef MBEDTLS_TIMING_C
-// #undef MBEDTLS_NET_C
 #endif

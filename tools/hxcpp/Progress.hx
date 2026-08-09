@@ -3,8 +3,8 @@ package;
 using StringTools;
 
 class Progress {
-	public var current:Int;
-	public var total:Int;
+	private var current:Int;
+	private var total:Int;
 
 	public function new(inCurrent:Int, inTotal:Int) {
 		current = inCurrent;
@@ -16,14 +16,12 @@ class Progress {
 	}
 
 	public function getProgress() {
-		var percent = current / total;
-		var pct = Std.int(percent * 1000) / 10;
+		final percent = current / total;
+		final pct = Std.int(percent * 1000) / 10;
 		var str = Std.string(pct);
 		if (Std.int(pct) == pct) {
 			str += ".0";
 		}
-		// while (str.length < 4)
-		// 	str = " " + str;
 		return "[" + str + "%]";
 	}
 }

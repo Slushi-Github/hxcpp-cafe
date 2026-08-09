@@ -1,15 +1,13 @@
-# hxcpp with Wii U support?
+# hxcpp with Wii U support...?
 
-This fork of hxcpp (Based on commit ``1618253``) based on [my hxcpp fork for the Nintendo Switch](https://github.com/Slushi-Github/hxcpp-nx) has all the modifications needed to compile Haxe for the Nintendo Wii U.
+This fork of hxcpp (Based on commit ``???`` (I really don't remember)) based on [a private version of my hxcpp fork for the Nintendo Switch](https://github.com/Slushi-Github/hxcpp-nx) has all the modifications needed to compile Haxe for the Nintendo Wii U.
 
-**THIS IS TOTALLY EXPERIMENTAL AND I DON'T KNOW WHAT STATE THIS THING IS IN; I BARELY MANAGED TO PRINT SOMETHING TO THE CONSOLE SCREEN, I DO NOT RECOMMEND USING THIS, AND I DID IT PURELY FOR EXPERIMENTAL PURPOSES. DON’T EXPECT ME TO TAKE THIS SERIOUSLY, USE [hxcpp-nx](https://github.com/Slushi-Github/hxcpp-nx) INSTEAD, WHICH ACTUALLY WORKS!**
+It compiles and runs, but needs more testing...
 
-I'd really appreciate any help with this. 
+The hxcpp TLS and threads are really changed in this fork, and this fork has changes to only the Wii U, not the Switch, so you can only use this fork for the Wii U if you want compile to a console... For now.
 
-## Problems:
+# Problems:
 
-The implementation of pthreads in DevKitPPC or specifically for the Wii U doesn't seem to be the best or sufficient enough to at least support TLS (**T**hread-**L**ocal **S**torage), so the Wii U couldn't use them correctly and caused hxcpp to crash. I've managed to implement a solution that allows a program compiled to use pthreads and TLS to run, but the program is still incredibly unstable, whether using a single thread or more.
+- Missing SSL, WUT don't let you get the certificates for use with hxcpp for enable SSL support.
 
-This is how I feel after giving up on this project (VIDEO WITH LOUD SOUND, maybe?):
-
-https://github.com/user-attachments/assets/79171259-06c3-43e1-9e41-523a89a67cfe
+- Socket untested and aparently partially supported, but not fully functional I think. IPV6 stuff and ``_hx_std_host_local`` in ``src/hx/libs/std/Socket.cpp`` (perhaps related to ``sys.net.Host.localhost``?) are not supported. (maybe similar issue with SQLite?) (Same issue with hxcpp-nx)

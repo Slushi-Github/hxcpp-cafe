@@ -15,7 +15,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <stdio.h>
 #include "my_proto.h"
 
-#if defined(__NX__)
+#if defined(__CAFE__)
 char *strdup(const char *s)
 {
 	size_t slen = strlen(s);

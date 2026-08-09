@@ -24,9 +24,8 @@
          <set name="HXCPP_AR" value="arm-linux-gnueabihf-ar" />
          <set name="HXCPP_RANLIB" value="arm-linux-gnueabihf-ranlib" />
       </section>
-
       <section if="cafe">
-         <!-- Wii U devkitPPC paths -->
+         <!-- Wii U DevKitPPC paths -->
          <path name="${DEVKITPRO}/devkitPPC/bin/" />
          <path name="${DEVKITPRO}/tools/bin/" />
          <set name='CXX' value='powerpc-eabi-g++' />
@@ -34,10 +33,7 @@
          <set name='HXCPP_AR' value='powerpc-eabi-ar' />
          <set name='HXCPP_RANLIB' value='powerpc-eabi-ranlib' />
       </section>
-      
    </section>
-
-   <set name="HXCPP_CPP11" value="1" unless="HXCPP_NO_CPP11 || HXCPP_CPP17" />
 
    <include name="toolchain/gcc-toolchain.xml"/>
    <set name="noM32" value="1" if="HXCPP_NO_M32" />
@@ -51,11 +47,10 @@
    <compiler id="linux" exe="g++" if="linux">
       <exe name="${CXX}" if="CXX" />
       <flag value="-c"/>
+      <flag value="-flto" if="HXCPP_OPTIMIZE_LINK" unless="debug"/>
       <flag value="-fvisibility=hidden"/>
       <cppflag value="-frtti"/>
-      <cppflag value="-std=c++11" if="HXCPP_CPP11" />
-      <cppflag value="-std=c++17" if="HXCPP_CPP17"/>
-      <flag value="-g" if="debug"/>
+      <flag value="-g" if="HXCPP_DEBUG_LINK"/>
       <flag value="-O2" unless="debug"/>
 
       <!-- Wii U specific flags -->
@@ -64,10 +59,7 @@
          <flag value='-mcpu=750' />
          <flag value='-meabi' />
          <flag value='-mhard-float' />
-         <flag value='-mno-sdata' />
-         <flag value='-fno-plt' />
-         <flag value='-fno-pic' />
-         <flag value='-fno-pie' />
+         <!-- <flag value='-fPIE' /> -->
          <flag value='-Wall' />
          <flag value='-D__WIIU__' />
          <flag value='-D__WUT__' />
@@ -77,30 +69,26 @@
          <flag value="-DHX_CAFE"/>
          <flag value="-DEPPC"/>
          <flag value='-ffunction-sections' />
-         <flag value='-fexceptions' />
+         <!-- <flag value='-fexceptions' /> -->
          <flag value='-fpermissive' />
          <flag value='-static' />
-         <flag value='-pthread' />
-         <flag value="-fno-threadsafe-statics"/>
          <flag value="-I${DEVKITPRO}/wut/include"/>
          <flag value="-DHXCPP_BIG_ENDIAN"/>
-         <flag value="-DHXCPP_PTHREADS"/>
-         <!-- <flag value="-DHXCPP_NO_DEBUGGER"/> -->
-         <!-- <flag value="-DHXCPP_SINGLE_THREADED_APP"/> -->
+         <flag value="-DHXCPP_NO_DEBUGGER"/>
+         <flag value="-DHXCPP_WIIU_LOG_INIT"/>
       </section>
-      
+
       <flag value="-fpic" unless="cafe" />
       <flag value="-fPIC" unless="cafe"/>
 
       <flag value="-Wno-overflow" />
       <cppflag value="-Wno-invalid-offsetof" />
-
       <flag value="-DHX_LINUX"/>
       <flag value="-DRASPBERRYPI=RASPBERRYPI" if="rpi"/>
-      <flag value="-DHXCPP_MULTI_THREADED" if="HXCPP_MULTI_THREADED" unless="cafe"/>
+      <flag value="-DHXCPP_MULTI_THREADED" if="HXCPP_MULTI_THREADED"/>
       <flag value="-DHXCPP_BIG_ENDIAN" if="HXCPP_BIG_ENDIAN || cafe"/>
       <include name="toolchain/common-defines.xml" />
-      <flag value="-m32" unless="noM32 || cafe"/>
+      <flag value="-m32" unless="noM32"/>
       <flag value="-m64" if="HXCPP_M64" unless="noM64 || cafe" />
       <flag value="-DHXCPP_M64" if="HXCPP_M64"/>
       <flag value="-I${HXCPP}/include"/>
@@ -112,45 +100,34 @@
    <linker id="dll" exe="g++" if="linux">
       <exe name="${CXX}" if="CXX" />
       <fromfile value="" if="GCC_OLD" />
-      <flag value="-shared" unless="cafe" />
+      <flag value="-shared"/>
       <flag value="-fpic" unless="cafe"/>
       <flag value="-fPIC" unless="cafe"/>
-      <flag value="-m32" unless="noM32"/>
+      <flag value="-m32" unless="noM32 || cafe"/>
       <flag value="-m64" if="HXCPP_M64" unless="noM64 || cafe" />
       <flag value="-Xlinker"/>
       <flag value="--no-undefined" unless="HXCPP_ALLOW_UNDEFINED" />
-      <flag value="-debug" if="debug"/>
-      <lib name="-ldl"/>
+      <flag value="-debug" if="HXCPP_DEBUG_LINK" />
+      <lib name="-ldl" unless="cafe"/>
 
       <section if="cafe">
-         <lib name="-lpthread" />
-         <lib name="-lcafe"/>
-         <flag value="-specs=wut.specs"/>
+         <lib name="-lwut"/>
+         <flag value="-specs=${DEVKITPRO}/wut/share/wut.specs"/>
          <lib name="-L${DEVKITPRO}/wut/lib"/>
       </section>
 
-      <ext value=".dso" unless="cafe" />
+      <ext value=".dso"/>
       <outflag value="-o "/>
-   </linker>
-
-  <linker id="static_library" exe="ar" if="linux">
-      <exe name="${HXCPP_AR}" if="HXCPP_AR" />
-      <section if="cafe">
-         <exe name="powerpc-eabi-ar" />
-      </section>
-      <flag value="rcs" />
-      <outflag value="-o " />
-      <ext value=".a" />
    </linker>
 
    <linker id="exe" exe="g++" if="linux">
       <exe name="${CXX}" if="CXX" />
       <fromfile value="" if="GCC_OLD" />
-      <flag value="-debug" if="debug"/>
-      <flag value="-rdynamic" unless="cafe" />
+      <flag value="-debug" if="HXCPP_DEBUG_LINK" />
+      <flag value="-rdynamic"/>
       <flag value="-m32" unless="noM32"/>
       <flag value="-m64" if="HXCPP_M64" unless="noM64 || cafe" />
-      <lib name="-ldl" unless="cafe" />
+      <lib name="-ldl" unless="cafe"/>
       <ext value=""/>
       <outflag value="-o "/>
    </linker>

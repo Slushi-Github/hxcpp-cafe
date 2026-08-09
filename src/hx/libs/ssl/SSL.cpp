@@ -18,8 +18,8 @@ typedef int SOCKET;
 #include <Security/Security.h>
 #endif
 
-#if defined(HX_NX)
-#include <switch.h>
+#if defined(HX_CAFE)
+#include <wut.h>
 #include <stdlib.h>
 #endif
 
@@ -78,7 +78,7 @@ struct sslctx : public hx::Object
 		((sslctx *)(obj.mPtr))->destroy();
 	}
 
-	String toString() { return HX_CSTRING("sslctx"); }
+	String toString() HXCPP_OVERRIDE { return HX_CSTRING("sslctx"); }
 };
 
 struct sslconf : public hx::Object
@@ -109,7 +109,7 @@ struct sslconf : public hx::Object
 		((sslconf *)(obj.mPtr))->destroy();
 	}
 
-	String toString() { return HX_CSTRING("sslconfig"); }
+	String toString() HXCPP_OVERRIDE { return HX_CSTRING("sslconfig"); }
 };
 
 struct sslcert : public hx::Object
@@ -149,7 +149,7 @@ struct sslcert : public hx::Object
 		((sslcert *)(obj.mPtr))->destroy();
 	}
 
-	String toString() { return HX_CSTRING("sslcert"); }
+	String toString() HXCPP_OVERRIDE { return HX_CSTRING("sslcert"); }
 };
 
 struct sslpkey : public hx::Object
@@ -180,7 +180,7 @@ struct sslpkey : public hx::Object
 		((sslpkey *)(obj.mPtr))->destroy();
 	}
 
-	String toString() { return HX_CSTRING("sslpkey"); }
+	String toString() HXCPP_OVERRIDE { return HX_CSTRING("sslpkey"); }
 };
 
 static mbedtls_entropy_context entropy;
@@ -500,10 +500,16 @@ void _hx_ssl_conf_set_cert( Dynamic hconf, Dynamic hcert, Dynamic hpkey ) {
 
 static int sni_callback( void *arg, mbedtls_ssl_context *ctx, const unsigned char *name, size_t len ){
 	if( name && arg ){
+#if (HXCPP_API_LEVEL>=500)
+		auto cb  = hx::Callable<::Dynamic(::String)>(Dynamic(static_cast<hx::Object*>(arg)));
+		auto n   = reinterpret_cast<const char*>(name);
+		auto ret = cb(String(n, strlen(n)));
+#else
 		Dynamic cb = new Dynamic();
 		cb.mPtr = (hx::Object*)arg;
 		const char *n = (const char *)name;
 		Dynamic ret = cb->__run( String(n,strlen(n)) );
+#endif
 		if( ret != null() ){
 			// TODO authmode and ca
 			Dynamic hcert = ret->__Field(HX_CSTRING("cert"), hx::paccDynamic);
@@ -517,7 +523,11 @@ static int sni_callback( void *arg, mbedtls_ssl_context *ctx, const unsigned cha
 	return -1;
 }
 
+#if (HXCPP_API_LEVEL>=500)
+void _hx_ssl_conf_set_servername_callback(Dynamic hconf, ::hx::Callable<::Dynamic(String)> cb) {
+#else
 void _hx_ssl_conf_set_servername_callback( Dynamic hconf, Dynamic cb ){
+#endif
 	sslconf *conf = val_conf(hconf);
 	mbedtls_ssl_conf_sni( conf->c, sni_callback, (void *)cb.mPtr );
 }
@@ -578,45 +588,9 @@ Dynamic _hx_ssl_cert_load_defaults(){
 	CFRelease(keychain);
 	if( chain != NULL )
 		return chain;
-#elif defined(HX_NX) // Implementation for NX (Thanks CRobes on Discord for telling me that I had to modify this function)
-	sslcert *chain = NULL;
-	if (R_SUCCEEDED(sslInitialize(3)))
-	{
-		u32 id = SslCaCertificateId_All;
-		u32 buf_size = 0;
-
-		if (R_SUCCEEDED(sslGetCertificateBufSize(&id, 1, &buf_size)))
-		{
-			void *buf = malloc(buf_size);
-
-			if (buf)
-			{
-				u32 count = 0;
-				if (R_SUCCEEDED(sslGetCertificates(buf, buf_size, &id, 1, &count)))
-				{
-					SslBuiltInCertificateInfo *infos = (SslBuiltInCertificateInfo *)buf;
-
-					for (u32 i = 0; i < count; i++)
-					{
-						if (infos[i].status == SslTrustedCertStatus_EnabledTrusted)
-						{
-							if (chain == NULL)
-							{
-								chain = new sslcert();
-								chain->create(NULL);
-							}
-							mbedtls_x509_crt_parse_der(chain->c, (unsigned char *)infos[i].cert_data, (size_t)infos[i].cert_size);
-						}
-					}
-				}
-				free(buf);
-			}
-		}
-		sslExit();
-	}
-
-	if (chain != NULL)
-		return chain;
+#elif defined(HX_CAFE) 
+	// TODO
+	return null();
 #endif
 	return null();
 }
