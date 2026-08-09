@@ -59,7 +59,6 @@ namespace
 		if (!h)
 		{
 			h = new ThreadInfoHolder();
-			// inicializar según lo que haga el constructor original
 			pthread_setspecific(sThreadInfoKey, h);
 		}
 		return h;
@@ -76,34 +75,26 @@ namespace
 	void run(hx::thread::ThreadImpl thread, hx::thread::Thread_obj::CreateFunction job, hx::thread::CountingSemaphore semaphore)
 	{
 		#if defined(HX_CAFE)
-		// Reservar root en heap y registrarlo en el GC
         hx::Object **root = new hx::Object*;
         *root = thread.GetPtr();
 
         hx::GCAddRoot(root);
-
-        // Guardarlo en TLS para que Thread::current() lo vea
         tls.set(root);
 
-        // Preparar area en stack para que el GC pueda escanear la pila conservativamente.
         hx::thread::ThreadImpl_obj* info[2];
         info[0] = thread.GetPtr();
         info[1] = nullptr;
 
         hx::SetTopOfStack(reinterpret_cast<int*>(&info[1]), true);
 
-        // Indicar al creador que el hilo arrancó
         semaphore->release();
-
-        // Ejecutar el trabajo del hilo
+		
         job();
 
-        // Limpieza: quitar TLS y root del GC mientras el hilo aún está registrado
-        tls.set(nullptr);            // evita que el destructor del pthread key intente borrar nada
+        tls.set(nullptr);
         hx::GCRemoveRoot(root);
         delete root;
 
-        // Desregistrar hilo en hxcpp (libera contextos, etc.)
         hx::UnregisterCurrentThread();
 		#else
 		// info[1] will the the "top of stack" - values under this
@@ -162,7 +153,6 @@ hx::thread::Thread hx::thread::Thread_obj::current()
 	{
 		info = new ThreadImpl_obj(nextThreadnumber++);
 
-		// Crear root en heap y registrarlo
 		hx::Object **root = new hx::Object *;
 		*root = info;
 
