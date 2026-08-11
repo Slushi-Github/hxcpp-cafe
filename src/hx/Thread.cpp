@@ -1,6 +1,6 @@
 #include <hxcpp.h>
 
-#if (HXCPP_API_LEVEL<500)
+#if (HXCPP_API_LEVEL < 500)
 
 #include <hx/Thread.h>
 #include <time.h>
@@ -14,38 +14,38 @@
 
 struct Deque : public Array_obj<Dynamic>
 {
-	Deque() : Array_obj<Dynamic>(0,0) { }
+	Deque() : Array_obj<Dynamic>(0, 0) {}
 
 	static Deque *Create()
 	{
 		Deque *result = new Deque();
-		result->mFinalizer = new hx::InternalFinalizer(result,clean);
+		result->mFinalizer = new hx::InternalFinalizer(result, clean);
 		return result;
 	}
 	static void clean(hx::Object *inObj)
 	{
 		Deque *d = dynamic_cast<Deque *>(inObj);
-		if (d) d->Clean();
+		if (d)
+			d->Clean();
 	}
 	void Clean()
 	{
-		#ifdef HX_WINDOWS
+#ifdef HX_WINDOWS
 		mMutex.Clean();
-		#endif
+#endif
 		mSemaphore.Clean();
 	}
 
-   #ifdef HXCPP_VISIT_ALLOCS
+#ifdef HXCPP_VISIT_ALLOCS
 	void __Visit(hx::VisitContext *__inCtx) HXCPP_OVERRIDE
 	{
 		Array_obj<Dynamic>::__Visit(__inCtx);
 		mFinalizer->Visit(__inCtx);
 	}
-   #endif
+#endif
 
-
-	#ifndef HX_THREAD_SEMAPHORE_LOCKABLE
-	HxMutex     mMutex;
+#ifndef HX_THREAD_SEMAPHORE_LOCKABLE
+	HxMutex mMutex;
 	void PushBack(Dynamic inValue)
 	{
 		hx::EnterGCFreeZone();
@@ -64,7 +64,6 @@ struct Deque : public Array_obj<Dynamic>
 		unshift(inValue);
 		mSemaphore.Set();
 	}
-
 
 	Dynamic PopFront(bool inBlock)
 	{
@@ -76,7 +75,7 @@ struct Deque : public Array_obj<Dynamic>
 			return shift();
 		}
 		// Ok - wait for something on stack...
-		while(!length)
+		while (!length)
 		{
 			mSemaphore.Reset();
 			lock.Unlock();
@@ -84,11 +83,11 @@ struct Deque : public Array_obj<Dynamic>
 			lock.Lock();
 		}
 		hx::ExitGCFreeZone();
-		if (length==1)
+		if (length == 1)
 			mSemaphore.Reset();
 		return shift();
 	}
-	#else
+#else
 	void PushBack(Dynamic inValue)
 	{
 		hx::EnterGCFreeZone();
@@ -106,20 +105,19 @@ struct Deque : public Array_obj<Dynamic>
 		mSemaphore.QSet();
 	}
 
-
 	Dynamic PopFront(bool inBlock)
 	{
 		hx::EnterGCFreeZone();
 		AutoLock lock(mSemaphore);
-		while(inBlock && !length)
+		while (inBlock && !length)
 			mSemaphore.QWait();
 		hx::ExitGCFreeZone();
-		Dynamic result =  shift();
+		Dynamic result = shift();
 		if (length)
 			mSemaphore.QSet();
 		return result;
 	}
-	#endif
+#endif
 
 	hx::InternalFinalizer *mFinalizer;
 	HxSemaphore mSemaphore;
@@ -130,7 +128,7 @@ Dynamic __hxcpp_deque_create()
 	return Deque::Create();
 }
 
-void __hxcpp_deque_add(Dynamic q,Dynamic inVal)
+void __hxcpp_deque_add(Dynamic q, Dynamic inVal)
 {
 	Deque *d = dynamic_cast<Deque *>(q.mPtr);
 	if (!d)
@@ -138,7 +136,7 @@ void __hxcpp_deque_add(Dynamic q,Dynamic inVal)
 	d->PushBack(inVal);
 }
 
-void __hxcpp_deque_push(Dynamic q,Dynamic inVal)
+void __hxcpp_deque_push(Dynamic q, Dynamic inVal)
 {
 	Deque *d = dynamic_cast<Deque *>(q.mPtr);
 	if (!d)
@@ -146,7 +144,7 @@ void __hxcpp_deque_push(Dynamic q,Dynamic inVal)
 	d->PushFront(inVal);
 }
 
-Dynamic __hxcpp_deque_pop(Dynamic q,bool block)
+Dynamic __hxcpp_deque_pop(Dynamic q, bool block)
 {
 	Deque *d = dynamic_cast<Deque *>(q.mPtr);
 	if (!d)
@@ -178,19 +176,19 @@ Dynamic __hxcpp_thread_read_message(bool inBlocked)
 
 bool __hxcpp_is_current_thread(hx::Object *inThread)
 {
-   return inThread == hx::thread::Thread_obj::current();
+	return inThread == hx::thread::Thread_obj::current();
 }
 
 // --- TLS ------------------------------------------------------------
 
 Dynamic __hxcpp_tls_get(int inID)
 {
-	return reinterpret_cast<hx::thread::ThreadImpl_obj*>(hx::thread::Thread_obj::current().GetPtr())->getSlot(inID);
+	return reinterpret_cast<hx::thread::ThreadImpl_obj *>(hx::thread::Thread_obj::current().GetPtr())->getSlot(inID);
 }
 
-void __hxcpp_tls_set(int inID,Dynamic inVal)
+void __hxcpp_tls_set(int inID, Dynamic inVal)
 {
-	reinterpret_cast<hx::thread::ThreadImpl_obj*>(hx::thread::Thread_obj::current().GetPtr())->setSlot(inID, inVal);
+	reinterpret_cast<hx::thread::ThreadImpl_obj *>(hx::thread::Thread_obj::current().GetPtr())->setSlot(inID, inVal);
 }
 
 // --- Mutex ------------------------------------------------------------
@@ -220,20 +218,24 @@ void __hxcpp_mutex_release(Dynamic inMutex)
 
 // --- Semaphore ------------------------------------------------------------
 
-Dynamic __hxcpp_semaphore_create(int value) {
+Dynamic __hxcpp_semaphore_create(int value)
+{
 	return new hx::thread::CountingSemaphore_obj(value);
 }
-void __hxcpp_semaphore_acquire(Dynamic inSemaphore) {
+void __hxcpp_semaphore_acquire(Dynamic inSemaphore)
+{
 	auto semaphore = inSemaphore.Cast<hx::thread::CountingSemaphore>();
 
 	semaphore->acquire();
 }
-bool __hxcpp_semaphore_try_acquire(Dynamic inSemaphore, double timeout) {
+bool __hxcpp_semaphore_try_acquire(Dynamic inSemaphore, double timeout)
+{
 	auto semaphore = inSemaphore.Cast<hx::thread::CountingSemaphore>();
 
 	return semaphore->tryAcquire(timeout);
 }
-void __hxcpp_semaphore_release(Dynamic inSemaphore) {
+void __hxcpp_semaphore_release(Dynamic inSemaphore)
+{
 	auto semaphore = inSemaphore.Cast<hx::thread::CountingSemaphore>();
 
 	semaphore->release();
@@ -291,34 +293,33 @@ void __hxcpp_condition_broadcast(Dynamic inCond)
 class hxLock : public hx::Object
 {
 public:
-
 	hxLock()
 	{
 		mFinalizer = new hx::InternalFinalizer(this);
 		mFinalizer->mFinalizer = clean;
 	}
 
-   HX_IS_INSTANCE_OF enum { _hx_ClassId = hx::clsIdLock };
+	HX_IS_INSTANCE_OF enum { _hx_ClassId = hx::clsIdLock };
 
-   #ifdef HXCPP_VISIT_ALLOCS
+#ifdef HXCPP_VISIT_ALLOCS
 	void __Visit(hx::VisitContext *__inCtx) HXCPP_OVERRIDE { mFinalizer->Visit(__inCtx); }
-   #endif
+#endif
 
 	hx::InternalFinalizer *mFinalizer;
 
-	#if defined(HX_WINDOWS) || defined(__SNC__)
+#if defined(HX_WINDOWS) || defined(__SNC__)
 	double Now()
 	{
-		return (double)clock()/CLOCKS_PER_SEC;
+		return (double)clock() / CLOCKS_PER_SEC;
 	}
-	#else
+#else
 	double Now()
 	{
 		struct timeval tv;
-		gettimeofday(&tv,0);
-		return tv.tv_sec + tv.tv_usec*0.000001;
+		gettimeofday(&tv, 0);
+		return tv.tv_sec + tv.tv_usec * 0.000001;
 	}
-	#endif
+#endif
 
 	static void clean(hx::Object *inObj)
 	{
@@ -332,31 +333,31 @@ public:
 	bool Wait(double inTimeout)
 	{
 		double stop = 0;
-		if (inTimeout>=0)
+		if (inTimeout >= 0)
 			stop = Now() + inTimeout;
-		while(1)
+		while (1)
 		{
 			mAvailableLock.Lock();
 			if (mAvailable)
 			{
 				--mAvailable;
-		      if (mAvailable>0)
-               mNotEmpty.Set();
+				if (mAvailable > 0)
+					mNotEmpty.Set();
 				mAvailableLock.Unlock();
 				return true;
 			}
 			mAvailableLock.Unlock();
 			double wait = 0;
-			if (inTimeout>=0)
+			if (inTimeout >= 0)
 			{
-				wait = stop-Now();
-				if (wait<=0)
+				wait = stop - Now();
+				if (wait <= 0)
 					return false;
 			}
 
 			hx::EnterGCFreeZone();
-			if (inTimeout<0)
-				mNotEmpty.Wait( );
+			if (inTimeout < 0)
+				mNotEmpty.Wait();
 			else
 				mNotEmpty.WaitSeconds(wait);
 			hx::ExitGCFreeZone();
@@ -369,19 +370,16 @@ public:
 		mNotEmpty.Set();
 	}
 
-
 	HxSemaphore mNotEmpty;
-   HxMutex     mAvailableLock;
-	int         mAvailable;
+	HxMutex mAvailableLock;
+	int mAvailable;
 };
-
-
 
 Dynamic __hxcpp_lock_create()
 {
 	return new hxLock;
 }
-bool __hxcpp_lock_wait(Dynamic inlock,double inTime)
+bool __hxcpp_lock_wait(Dynamic inlock, double inTime)
 {
 	hxLock *lock = dynamic_cast<hxLock *>(inlock.mPtr);
 	if (!lock)
@@ -396,7 +394,6 @@ void __hxcpp_lock_release(Dynamic inlock)
 	lock->Release();
 }
 
-
 int __hxcpp_GetCurrentThreadNumber()
 {
 	return hx::thread::Thread_obj::id();
@@ -406,17 +403,17 @@ int __hxcpp_GetCurrentThreadNumber()
 
 // --- Atomic ---
 
-bool _hx_atomic_exchange_if(::cpp::Pointer<cpp::AtomicInt> inPtr, int test, int  newVal )
+bool _hx_atomic_exchange_if(::cpp::Pointer<cpp::AtomicInt> inPtr, int test, int newVal)
 {
-   return _hx_atomic_compare_exchange(inPtr, test, newVal) == test;
+	return _hx_atomic_compare_exchange(inPtr, test, newVal) == test;
 }
 
-int _hx_atomic_inc(::cpp::Pointer<cpp::AtomicInt> inPtr )
+int _hx_atomic_inc(::cpp::Pointer<cpp::AtomicInt> inPtr)
 {
-   return _hx_atomic_add(inPtr, 1);
+	return _hx_atomic_add(inPtr, 1);
 }
 
-int _hx_atomic_dec(::cpp::Pointer<cpp::AtomicInt> inPtr )
+int _hx_atomic_dec(::cpp::Pointer<cpp::AtomicInt> inPtr)
 {
-   return _hx_atomic_sub(inPtr, 1);
+	return _hx_atomic_sub(inPtr, 1);
 }

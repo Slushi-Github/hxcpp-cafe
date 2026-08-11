@@ -2004,7 +2004,7 @@ class BuildTool
          defines.set("xcompile", "1");
          defines.set("linux","linux");
          defines.set("HXCPP_M32","1");
-         // defines.set("EPPC","1");
+         defines.set("EPPC","1");
          defines.set("BINDIR","WiiU");
          Log.println("Using toolchain for Nintendo Wii U");
       }

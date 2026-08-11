@@ -42,7 +42,7 @@
    <set name="noM32" value="1" if="HXCPP_ARM64" />
    <set name="noM64" value="1" if="HXCPP_ARM64" />
 
-   <set name="noM32" value="1" if="cafe" />
+   <!-- <set name="noM32" value="1" if="cafe" /> -->
 
    <compiler id="linux" exe="g++" if="linux">
       <exe name="${CXX}" if="CXX" />
@@ -76,6 +76,14 @@
          <flag value="-DHXCPP_BIG_ENDIAN"/>
          <flag value="-DHXCPP_NO_DEBUGGER"/>
          <flag value="-DHXCPP_WIIU_LOG_INIT"/>
+         <flag value="-mno-sdata"/>
+         <flag value="-fno-PIC"/>
+         <flag value="-fno-PIE"/>
+         <flag value="-DHXCPP_M32"/>
+         <flag value="-DHXCPP_BIG_ENDIAN"/>
+         <flag value="-DHXCPP_STACK_TRACE"/>
+         <flag value="-DHXCPP_STACK_LINE"/>
+         <flag value="-DHXCPP_STACK_POINTER"/>
       </section>
 
       <flag value="-fpic" unless="cafe" />
@@ -88,8 +96,8 @@
       <flag value="-DHXCPP_MULTI_THREADED" if="HXCPP_MULTI_THREADED"/>
       <flag value="-DHXCPP_BIG_ENDIAN" if="HXCPP_BIG_ENDIAN || cafe"/>
       <include name="toolchain/common-defines.xml" />
-      <flag value="-m32" unless="noM32"/>
-      <flag value="-m64" if="HXCPP_M64" unless="noM64 || cafe" />
+      <flag value="-m32" if="cafe" unless="noM32"/>
+      <flag value="-m64" if="HXCPP_M64" unless="noM64" />
       <flag value="-DHXCPP_M64" if="HXCPP_M64"/>
       <flag value="-I${HXCPP}/include"/>
       <objdir value="obj/linux${OBJEXT}/"/>
@@ -103,8 +111,8 @@
       <flag value="-shared"/>
       <flag value="-fpic" unless="cafe"/>
       <flag value="-fPIC" unless="cafe"/>
-      <flag value="-m32" unless="noM32 || cafe"/>
-      <flag value="-m64" if="HXCPP_M64" unless="noM64 || cafe" />
+      <flag value="-m32" if="cafe" unless="noM32"/>
+      <flag value="-m64" if="HXCPP_M64" unless="noM64" />
       <flag value="-Xlinker"/>
       <flag value="--no-undefined" unless="HXCPP_ALLOW_UNDEFINED" />
       <flag value="-debug" if="HXCPP_DEBUG_LINK" />
@@ -125,8 +133,8 @@
       <fromfile value="" if="GCC_OLD" />
       <flag value="-debug" if="HXCPP_DEBUG_LINK" />
       <flag value="-rdynamic"/>
-      <flag value="-m32" unless="noM32"/>
-      <flag value="-m64" if="HXCPP_M64" unless="noM64 || cafe" />
+      <flag value="-m32" if="cafe" unless="noM32"/>
+      <flag value="-m64" if="HXCPP_M64" unless="noM64" />
       <lib name="-ldl" unless="cafe"/>
       <ext value=""/>
       <outflag value="-o "/>

@@ -202,7 +202,7 @@ class Builder
                   //validArchs.set("x86", ["-Dappletvsim", "-DENABLE_BITCODE"].concat(staticFlags) );
                   validArchs.set("x86_64", ["-Dappletvsim", "-DHXCPP_M64", "-DENABLE_BITCODE"].concat(staticFlags) );
                case "wiiu":
-                  validArchs.set("ppc", ["-Dwiiu", "-DEPPC"].concat(staticFlags));
+                  validArchs.set("ppc", ["-Dwiiu", "-DEPPC", "-DHXCPP_M32"].concat(staticFlags));
 
             }
 

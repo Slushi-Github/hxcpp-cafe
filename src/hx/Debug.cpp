@@ -17,12 +17,17 @@
 #endif
 
 
+#if defined(HX_CAFE)
+#include <coreinit/debug.h>
+#endif
 
 #ifdef HX_WINRT
 #define DBGLOG WINRT_LOG
 #elif defined(ANDROID)
 #include <android/log.h>
 #define DBGLOG(...) __android_log_print(ANDROID_LOG_INFO, "HXCPP", __VA_ARGS__)
+#elif defined(HX_CAFE)
+#define DBGLOG(...) OSReport
 #else
 #include <stdio.h>
 #define DBGLOG printf
@@ -408,6 +413,9 @@ void StackContext::dumpExceptionStack()
    #ifdef ANDROID
    #define EXCEPTION_PRINT(...) \
         __android_log_print(ANDROID_LOG_ERROR, "HXCPP", __VA_ARGS__)
+   #elif defined(HX_CAFE)
+      #define EXCEPTION_PRINT(...) \
+         OSReport(__VA_ARGS__)
    #else
    #define EXCEPTION_PRINT(...) \
            printf(__VA_ARGS__)
