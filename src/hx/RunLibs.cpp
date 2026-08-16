@@ -4,6 +4,7 @@
 #include <hxcpp.h>
 #include <string>
 
+#include <whb/log.h>
 
 extern "C"
 {
@@ -21,6 +22,7 @@ HXCPP_EXTERN_CLASS_ATTRIBUTES const HX_CHAR *hxRunLibrary()
    catch ( Dynamic d ) {
       sgResultBuffer = d->toString().__s;
       OSReport("[hxRunLibrary] ERROR: %s\n", sgResultBuffer.c_str());
+      WHBLogPrintf("[hxRunLibrary] ERROR: %s\n", sgResultBuffer.c_str());
       return sgResultBuffer.c_str();
    }
 }

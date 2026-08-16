@@ -38,6 +38,11 @@ typedef int64_t __int64;
 #define srand(x) srand48(x)
 #endif
 
+#if defined(HX_CAFE)
+#include <coreinit/debug.h>
+#include <whb/log.h>
+#endif
+
 #ifdef HX_WINRT
 #define PRINTF WINRT_PRINTF
 #elif defined(TIZEN)
@@ -46,6 +51,12 @@ typedef int64_t __int64;
 #define PRINTF(fmt, ...) __android_log_print(ANDROID_LOG_INFO, "trace", fmt, __VA_ARGS__);
 #elif defined(WEBOS)
 #define PRINTF(fmt, ...) syslog(LOG_INFO, "trace", fmt, __VA_ARGS__);
+#elif defined(HX_CAFE)
+#define PRINTF(fmt, ...) \
+   do { \
+      WHBLogPrintf(fmt, __VA_ARGS__); \
+      OSReport(fmt, __VA_ARGS__); \
+   } while(0)
 #else
 #define PRINTF printf
 #endif
@@ -679,6 +690,10 @@ void __hxcpp_println_string(const String &inV)
       fflush(stdout);
       return;
    }
+// #elif defined(HX_CAFE)
+//    hx::strbuf convertBuf;
+//    OSReport("%s\n", inV.out_str(&convertBuf));
+
 #endif
    hx::strbuf convertBuf;
    PRINTF("%s\n", inV.out_str(&convertBuf));

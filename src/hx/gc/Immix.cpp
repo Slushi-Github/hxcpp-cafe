@@ -71,6 +71,7 @@ enum { gAlwaysMove = false };
 
 #if defined(HX_CAFE)
 #include <coreinit/debug.h>
+#include <whb/log.h>
 #endif
 
 #ifndef __has_builtin
@@ -86,7 +87,7 @@ void DebuggerTrap()
       triggeredOnce = true;
 
       #ifdef HX_CAFE
-      OSReport("hxcpp DebuggerTrap triggered - continuing\n"); 
+      OSReport("[src/hx/gc/Immix.cpp::DebuggerTrap] hxcpp DebuggerTrap triggered - continuing\n"); 
       #else
       #if __has_builtin(__builtin_trap)
       __builtin_trap();
@@ -6586,37 +6587,47 @@ void InitAlloc()
    // GCLOG("__root pointer %p\n", sgObject_root);
 
    #if defined(HXCPP_WIIU_LOG_INIT) && defined(HX_CAFE)
-   OSReport("about to new LocalAllocator\n");
+   OSReport("[src/hx/gc/Immix.cpp::InitAlloc] about to new LocalAllocator\n");
+   WHBLogPrintf("[src/hx/gc/Immix.cpp::InitAlloc] about to new LocalAllocator\n");
    #endif
    gMainThreadContext =  new LocalAllocator();
    #if defined(HXCPP_WIIU_LOG_INIT) && defined(HX_CAFE)
-   OSReport("LocalAllocator created OK\n");
+   OSReport("[src/hx/gc/Immix.cpp::InitAlloc] LocalAllocator created OK\n");
+   WHBLogPrintf("[src/hx/gc/Immix.cpp::InitAlloc] LocalAllocator created OK\n");
    #endif
 
    tlsStackContext = gMainThreadContext;
 
    #if defined(HXCPP_WIIU_LOG_INIT) && defined(HX_CAFE)
-   OSReport("tlsStackContext set to %p (readback=%p)\n",
+   OSReport("[src/hx/gc/Immix.cpp::InitAlloc] tlsStackContext set to %p (readback=%p)\n",
+          (void*)gMainThreadContext, (void*)(hx::StackContext*)tlsStackContext);
+   WHBLogPrintf("[src/hx/gc/Immix.cpp::InitAlloc] tlsStackContext set to %p (readback=%p)\n",
           (void*)gMainThreadContext, (void*)(hx::StackContext*)tlsStackContext);
 
-   OSReport("about to ExitGCFreeZone\n");
+   OSReport("[src/hx/gc/Immix.cpp::InitAlloc] about to ExitGCFreeZone\n");
+   WHBLogPrintf("[src/hx/gc/Immix.cpp::InitAlloc] about to ExitGCFreeZone\n");
    #endif
    ExitGCFreeZone();
    #if defined(HXCPP_WIIU_LOG_INIT) && defined(HX_CAFE)
-   OSReport("ExitGCFreeZone OK\n");
+   OSReport("[src/hx/gc/Immix.cpp::InitAlloc] ExitGCFreeZone OK\n");
+   WHBLogPrintf("[src/hx/gc/Immix.cpp::InitAlloc] ExitGCFreeZone OK\n");
 
-   OSReport("about to Thread_obj::current\n");
-   #endif
+   OSReport("[src/hx/gc/Immix.cpp::InitAlloc] about to Thread_obj::current\n");
+   WHBLogPrintf("[src/hx/gc/Immix.cpp::InitAlloc] about to Thread_obj::current\n");
+#endif
    // Setup main thread ...
    hx::thread::Thread_obj::current();
    #if defined(HXCPP_WIIU_LOG_INIT) && defined(HX_CAFE)
-   OSReport("Thread_obj::current OK\n");
+   OSReport("[src/hx/gc/Immix.cpp::InitAlloc] Thread_obj::current OK\n");
+   WHBLogPrintf("[src/hx/gc/Immix.cpp::InitAlloc] Thread_obj::current OK\n");
 
-   OSReport("about to gMainThreadContext->onThreadAttach\n");
+   OSReport("[src/hx/gc/Immix.cpp::InitAlloc] about to gMainThreadContext->onThreadAttach\n");
+   WHBLogPrintf("[src/hx/gc/Immix.cpp::InitAlloc] about to gMainThreadContext->onThreadAttach\n");
    #endif
    gMainThreadContext->onThreadAttach();
    #if defined(HXCPP_WIIU_LOG_INIT) && defined(HX_CAFE)
-   OSReport("gMainThreadContext->onThreadAttach OK\n");
+   OSReport("[src/hx/gc/Immix.cpp::InitAlloc] gMainThreadContext->onThreadAttach OK\n");
+   WHBLogPrintf("[src/hx/gc/Immix.cpp::InitAlloc] gMainThreadContext->onThreadAttach OK\n");
    #endif
 }
 

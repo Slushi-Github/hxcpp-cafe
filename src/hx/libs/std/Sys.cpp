@@ -6,12 +6,15 @@
 #include <string.h>
 #include <time.h>
 
-#ifndef EPPC
+#ifndef EPPC 
 #include <sys/types.h>
 #include <sys/stat.h>
 #endif
 
-
+#if defined(HX_CAFE)
+#include <sys/types.h>
+#include <sys/stat.h>
+#endif
 
 #ifdef NEKO_WINDOWS
    #include <windows.h>
@@ -361,7 +364,7 @@ void _hx_std_sys_exit( int code )
 **/
 bool _hx_std_sys_exists( String path )
 {
-   #ifdef EPPC
+   #if defined (EPPC) && !defined(HX_CAFE)
    return true;
    #else
 
