@@ -1,4 +1,4 @@
-#if !defined(HX_WINRT) && !defined(EPPC)
+#if !defined(HX_WINRT) && (!defined(EPPC) || defined(HX_CAFE))
 #include <hxcpp.h>
 #include <hx/OS.h>
 
@@ -187,7 +187,11 @@ Dynamic _hx_std_socket_new( bool udp, bool ipv6 )
       socketType = hxcpp_alloc_kind();
 
    SOCKET s;
+   #if !defined(HX_CAFE)
    int family = ipv6 ? AF_INET6 : AF_INET;
+   #else
+   int family = AF_INET;
+   #endif
    if( udp )
       s = socket(family,SOCK_DGRAM,0);
    else
@@ -510,6 +514,9 @@ inet_ntop_func dynamic_inet_ntop = 0;
 
 String _hx_std_host_to_string_ipv6( Array<unsigned char> ip )
 {
+   #if defined(HX_CAFE)
+   return String();
+   #else 
    char buf[100];
    #ifdef DYNAMIC_INET_FUNCS
    if (!dynamic_inet_ntop_tried)
@@ -524,6 +531,7 @@ String _hx_std_host_to_string_ipv6( Array<unsigned char> ip )
    return String( dynamic_inet_ntop(AF_INET6, &ip[0], buf, 100) );
    #else
    return String( inet_ntop(AF_INET6, &ip[0], buf, 100) );
+   #endif
    #endif
 }
 
@@ -974,6 +982,12 @@ void _hx_std_socket_set_timeout( Dynamic o, Dynamic t )
 {
    SOCKET sock = val_sock(o);
 
+   #if defined(HX_CAFE)
+   // Wii U does not have socket timeouts
+   (void)sock; (void)t;
+   return;
+   #else
+
 #ifdef NEKO_WINDOWS
    int time;
    if( !t.mPtr )
@@ -1003,6 +1017,7 @@ void _hx_std_socket_set_timeout( Dynamic o, Dynamic t )
       return;
    }
    hx::ExitGCFreeZone();
+   #endif
 }
 
 /**
