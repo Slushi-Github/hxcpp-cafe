@@ -80,7 +80,7 @@
          <flag value="-fno-PIC"/>
          <flag value="-fno-PIE"/>
          <flag value="-DHXCPP_M32"/>
-         <flag value="-DHXCPP_BIG_ENDIAN"/>
+         <flag value="-D__BIG_ENDIAN__"/>
          <!-- <flag value="-DHXCPP_STACK_TRACE"/>
          <flag value="-DHXCPP_STACK_LINE"/>
          <flag value="-DHXCPP_STACK_POINTER"/> -->

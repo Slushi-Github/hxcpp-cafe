@@ -120,6 +120,7 @@ typedef char HX_CHAR;
 #endif
 
 
+#if !defined(HX_CAFE)
 #ifdef BIG_ENDIAN
 #undef BIG_ENDIAN
 
@@ -147,6 +148,10 @@ typedef char HX_CHAR;
   #undef HXCPP_BIG_ENDIAN
   #endif
 #endif
+#else // Force big endian when we are compiling to the Wii U
+#define HXCPP_BIG_ENDIAN
+#define __BIG_ENDIAN__
+#endif // HX_CAFE
 
 
 // HX_HCSTRING is for constant strings with built-in hashes

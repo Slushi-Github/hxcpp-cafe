@@ -1,5 +1,11 @@
 #include <hxcpp.h>
 
+#if !defined(__BIG_ENDIAN__) && defined(HX_CAFE)
+   #error "__BIG_ENDIAN__ must be defined for Wii U!"
+#elif !defined(HXCPP_BIG_ENDIAN) && defined(HX_CAFE)
+#error "HXCPP_BIG_ENDIAN must be defined for Wii U!"
+#endif
+
 #include <hx/GC.h>
 #include <hx/Memory.h>
 #include <hx/Thread.h>
@@ -109,6 +115,9 @@ static void *sgObject_root = 0;
 #ifdef _MSC_VER
 // MSVC optimizes by taking the address of an initernal data member
 static int sgCheckInternalOffset = sizeof(void *)*2;
+static int sgCheckInternalOffsetRows = 1;
+#elif defined(HX_CAFE)
+static int sgCheckInternalOffset = sizeof(void *)*4;
 static int sgCheckInternalOffsetRows = 1;
 #else
 static int sgCheckInternalOffset = 0;
@@ -281,7 +290,11 @@ volatile int sgAllocsSinceLastSpam = 0;
 #ifdef ANDROID
 #define GCLOG(...) __android_log_print(ANDROID_LOG_INFO, "gclog", __VA_ARGS__)
 #elif defined(HX_CAFE)
-#define GCLOG OSReport
+#define GCLOG(...) \
+   do { \
+      WHBLogPrintf(__VA_ARGS__); \
+      OSReport(__VA_ARGS__); \
+   } while(0)
 #else
 #define GCLOG printf
 #endif
@@ -1759,6 +1772,8 @@ struct GlobalChunks
          if (!head)
          {
             freeListPopLock = 0;
+            static int sNewChunks = 0;
+            if ((++sNewChunks & 255) == 0) GCLOG("[GC] MarkChunk new=%d\n", sNewChunks);
             return new MarkChunk;
          }
          MarkChunk *next = head->next;
@@ -6499,8 +6514,10 @@ void VisitLocalAlloc(LocalAllocator *inAlloc,hx::VisitContext *__inCtx)
 
 void CollectFromThisThread(bool inMajor,bool inForceCompact)
 {
+   GCLOG("start CollectFromThisThread %d %d\n", inMajor, inForceCompact);
    LocalAllocator *la = GetLocalAlloc();
    la->SetupStackAndCollect(inMajor,inForceCompact);
+   GCLOG("end CollectFromThisThread la = %p\n", la);
 }
 
 namespace hx

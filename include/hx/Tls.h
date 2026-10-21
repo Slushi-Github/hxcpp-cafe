@@ -93,6 +93,7 @@ namespace hx
 
 #include <coreinit/thread.h>
 #include <coreinit/debug.h>
+#include <coreinit/atomic.h> 
 
 namespace hx
 {
@@ -107,8 +108,8 @@ namespace hx
    {
       static int Alloc()
       {
-         static int sNextSlot = 0;
-         int slot = sNextSlot++;
+         static volatile uint32_t sNextSlot = 0;
+         int slot = OSAddAtomic((volatile int32_t*)&sNextSlot, 1);
 
          // OS_THREAD_SPECIFIC_0 .. OS_THREAD_SPECIFIC_13 (0..13) are available
          // for application use. OS_THREAD_SPECIFIC_WUT_RESERVED_0/1 (14, 15)
