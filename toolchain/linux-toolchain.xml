@@ -75,7 +75,7 @@
          <flag value="-I${DEVKITPRO}/wut/include"/>
          <flag value="-DHXCPP_BIG_ENDIAN"/>
          <flag value="-DHXCPP_NO_DEBUGGER"/>
-         <flag value="-DHXCPP_WIIU_LOG_INIT"/>
+         <!-- <flag value="-DHXCPP_WIIU_LOG_INIT"/> -->
          <flag value="-mno-sdata"/>
          <flag value="-fno-PIC"/>
          <flag value="-fno-PIE"/>
