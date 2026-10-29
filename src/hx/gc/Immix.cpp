@@ -6514,10 +6514,8 @@ void VisitLocalAlloc(LocalAllocator *inAlloc,hx::VisitContext *__inCtx)
 
 void CollectFromThisThread(bool inMajor,bool inForceCompact)
 {
-   GCLOG("start CollectFromThisThread %d %d\n", inMajor, inForceCompact);
    LocalAllocator *la = GetLocalAlloc();
    la->SetupStackAndCollect(inMajor,inForceCompact);
-   GCLOG("end CollectFromThisThread la = %p\n", la);
 }
 
 namespace hx
