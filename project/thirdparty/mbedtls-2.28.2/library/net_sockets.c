@@ -180,7 +180,13 @@ int mbedtls_net_connect( mbedtls_net_context *ctx, const char *host,
 
     /* Do name resolution with both IPv6 and IPv4 */
     memset( &hints, 0, sizeof( hints ) );
-    hints.ai_family = AF_UNSPEC;
+    hints.ai_family = 
+        #if defined(__WIIU__)
+            AF_INET
+        #else
+            AF_UNSPEC
+        #endif
+        ;
     hints.ai_socktype = proto == MBEDTLS_NET_PROTO_UDP ? SOCK_DGRAM : SOCK_STREAM;
     hints.ai_protocol = proto == MBEDTLS_NET_PROTO_UDP ? IPPROTO_UDP : IPPROTO_TCP;
 
@@ -227,7 +233,13 @@ int mbedtls_net_bind( mbedtls_net_context *ctx, const char *bind_ip, const char 
 
     /* Bind to IPv6 and/or IPv4, but only in the desired protocol */
     memset( &hints, 0, sizeof( hints ) );
-    hints.ai_family = AF_UNSPEC;
+    hints.ai_family = 
+        #if defined(__WIIU__)
+            AF_INET
+        #else
+            AF_UNSPEC
+        #endif
+        ;
     hints.ai_socktype = proto == MBEDTLS_NET_PROTO_UDP ? SOCK_DGRAM : SOCK_STREAM;
     hints.ai_protocol = proto == MBEDTLS_NET_PROTO_UDP ? IPPROTO_UDP : IPPROTO_TCP;
     if( bind_ip == NULL )
@@ -435,6 +447,7 @@ int mbedtls_net_accept( mbedtls_net_context *bind_ctx,
 
             memcpy( client_ip, &addr4->sin_addr.s_addr, *ip_len );
         }
+        #if defined(AF_INET6)
         else
         {
             struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *) &client_addr;
@@ -445,6 +458,7 @@ int mbedtls_net_accept( mbedtls_net_context *bind_ctx,
 
             memcpy( client_ip, &addr6->sin6_addr.s6_addr, *ip_len);
         }
+        #endif
     }
 
     return( 0 );
